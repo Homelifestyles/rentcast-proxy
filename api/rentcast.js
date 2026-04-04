@@ -1,13 +1,41 @@
-export default async function handler(req, res) {
+const https = require('https');
+
+function httpsGet(url, headers) {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const options = {
+      hostname: parsedUrl.hostname,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: 'GET',
+      headers,
+    };
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          resolve({ status: res.statusCode, body: JSON.parse(data) });
+        } catch (e) {
+          reject(new Error('Invalid JSON from upstream: ' + data.slice(0, 200)));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // API key comes from Vercel environment variable — never exposed to the browser
   const apiKey = process.env.RENTCAST_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'RENTCAST_API_KEY not configured on server' });
+  if (!apiKey) {
+    return res.status(500).json({ error: 'RENTCAST_API_KEY env var not set on server' });
+  }
 
   const { endpoint, ...params } = req.query;
 
@@ -20,16 +48,12 @@ export default async function handler(req, res) {
   const url = `https://api.rentcast.io/v1/${endpoint}${qs ? '?' + qs : ''}`;
 
   try {
-    const upstream = await fetch(url, {
-      headers: {
-        'X-Api-Key': apiKey,
-        'Accept': 'application/json',
-      },
+    const result = await httpsGet(url, {
+      'X-Api-Key': apiKey,
+      'Accept': 'application/json',
     });
-
-    const data = await upstream.json();
-    return res.status(upstream.status).json(data);
+    return res.status(result.status).json(result.body);
   } catch (err) {
     return res.status(500).json({ error: 'Proxy fetch failed', detail: err.message });
   }
-}
+};
