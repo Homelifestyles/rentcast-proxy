@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Homelifestyles REI — Deal Underwriter</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
+  .header { background: linear-gradient(135deg, #16213e, #0f3460); padding: 20px 24px; border-bottom: 2px solid #e94560; display: flex; align-items: center; gap: 16px; }
+  .header h1 { font-size: 1.4rem; color: #fff; }
+  .header span { font-size: 0.85rem; color: #a0aec0; }
+  .container { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+
+  /* Lookup */
+  .lookup-card { background: #16213e; border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #0f3460; }
+  .lookup-card h2 { font-size: 1rem; color: #e94560; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
+  .address-row { display: flex; gap: 10px; }
+  .address-row input { flex: 1; background: #0f3460; border: 1px solid #253a6e; border-radius: 8px; padding: 12px 16px; color: #fff; font-size: 1rem; outline: none; }
+  .address-row input:focus { border-color: #e94560; }
+  .btn-lookup { background: #e94560; color: #fff; border: none; border-radius: 8px; padding: 12px 24px; font-size: 1rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+  .btn-lookup:hover { background: #c73652; }
+  .btn-lookup:disabled { background: #555; cursor: not-allowed; }
+  .status-bar { margin-top: 12px; display: flex; gap: 16px; font-size: 0.8rem; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #555; margin-right: 6px; }
+  .dot.loading { background: #f6ad55; animation: pulse 1s infinite; }
+  .dot.ok { background: #48bb78; }
+  .dot.err { background: #e94560; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Inputs */
+  .inputs-card { background: #16213e; border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #0f3460; }
+  .inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media(max-width:600px){ .inputs-grid{grid-template-columns:1fr;} }
+  .field label { display: block; font-size: 0.78rem; color: #a0aec0; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .field input, .field select { width: 100%; background: #0f3460; border: 1px solid #253a6e; border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 0.95rem; outline: none; }
+  .field input:focus, .field select:focus { border-color: #e94560; }
+  .field .auto-tag { font-size: 0.7rem; color: #48bb78; margin-left: 6px; }
+  .btn-underwrite { width: 100%; background: linear-gradient(135deg, #e94560, #c73652); color: #fff; border: none; border-radius: 10px; padding: 16px; font-size: 1.1rem; font-weight: 700; cursor: pointer; margin-top: 16px; transition: opacity 0.2s; }
+  .btn-underwrite:hover { opacity: 0.9; }
+
+  /* Results */
+  .results { display: none; }
+  .score-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  @media(max-width:600px){ .score-row{grid-template-columns:1fr;} }
+  .score-card { background: #16213e; border-radius: 12px; padding: 20px; border: 2px solid #0f3460; text-align: center; }
+  .score-card .strategy { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #a0aec0; margin-bottom: 8px; }
+  .score-card .score-num { font-size: 3rem; font-weight: 800; line-height: 1; }
+  .score-card .verdict { font-size: 0.9rem; font-weight: 600; margin-top: 8px; padding: 4px 12px; border-radius: 20px; display: inline-block; }
+  .verdict-strong { background: #1a4731; color: #48bb78; }
+  .verdict-decent { background: #2d3a1a; color: #9ae600; }
+  .verdict-marginal { background: #3d3010; color: #f6ad55; }
+  .verdict-pass { background: #3d1010; color: #e94560; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  @media(max-width:600px){ .detail-grid{grid-template-columns:1fr;} }
+  .detail-card { background: #16213e; border-radius: 12px; padding: 20px; border: 1px solid #0f3460; }
+  .detail-card h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #e94560; margin-bottom: 14px; }
+  .metric { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #0f3460; font-size: 0.88rem; }
+  .metric:last-child { border-bottom: none; }
+  .metric .label { color: #a0aec0; }
+  .metric .val { font-weight: 600; color: #fff; }
+  .metric .val.green { color: #48bb78; }
+  .metric .val.red { color: #e94560; }
+  .metric .val.yellow { color: #f6ad55; }
+  .rec-box { background: #0f3460; border-left: 4px solid #e94560; border-radius: 8px; padding: 14px 16px; margin-top: 12px; font-size: 0.88rem; color: #e0e0e0; }
+  .motivation-card { background: #16213e; border-radius: 12px; padding: 20px; border: 1px solid #0f3460; margin-bottom: 20px; }
+  .motivation-card h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #e94560; margin-bottom: 14px; }
+  .mot-bar { background: #0f3460; border-radius: 20px; height: 10px; margin: 8px 0 4px; }
+  .mot-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg, #f6ad55, #e94560); transition: width 0.8s; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Homelifestyles REI — Deal Underwriter</h1>
+    <span>Pensacola · Mobile · Birmingham</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Address Lookup -->
+  <div class="lookup-card">
+    <h2>Property Lookup</h2>
+    <div class="address-row">
+      <input type="text" id="addressInput" placeholder="123 Main St, Birmingham, AL 35201" />
+      <button class="btn-lookup" id="lookupBtn" onclick="lookupProperty()">Look Up</button>
+    </div>
+    <div class="status-bar" id="statusBar" style="display:none;">
+      <span><span class="dot" id="d1"></span><span id="s1">Property details</span></span>
+      <span><span class="dot" id="d2"></span><span id="s2">Rent estimate</span></span>
+      <span><span class="dot" id="d3"></span><span id="s3">Value estimate</span></span>
+    </div>
+  </div>
+
+  <!-- Deal Inputs -->
+  <div class="inputs-card">
+    <h2 style="font-size:1rem;color:#e94560;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px;">Deal Numbers</h2>
+    <div class="inputs-grid">
+      <div class="field">
+        <label>Asking / List Price ($)</label>
+        <input type="number" id="askingPrice" placeholder="150000" />
+      </div>
+      <div class="field">
+        <label>Estimated Rehab ($)</label>
+        <input type="number" id="rehabCost" placeholder="30000" />
+      </div>
+      <div class="field">
+        <label>ARV — After Repair Value ($) <span class="auto-tag" id="arvTag"></span></label>
+        <input type="number" id="arv" placeholder="Auto-filled from Rentcast" />
+      </div>
+      <div class="field">
+        <label>Est. Monthly Rent ($) <span class="auto-tag" id="rentTag"></span></label>
+        <input type="number" id="monthlyRent" placeholder="Auto-filled from Rentcast" />
+      </div>
+      <div class="field">
+        <label>Beds / Baths / Sqft <span class="auto-tag" id="propTag"></span></label>
+        <input type="text" id="propDetails" placeholder="3 / 2 / 1,400" readonly style="color:#48bb78;" />
+      </div>
+      <div class="field">
+        <label>Neighborhood Class</label>
+        <select id="neighborhoodClass">
+          <option value="A">A — 1% rent rule</option>
+          <option value="B" selected>B — 1.5% rent rule</option>
+          <option value="C">C — 2% rent rule</option>
+          <option value="D">D — 2.5% rent rule</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Days on Market</label>
+        <input type="number" id="dom" placeholder="0" />
+      </div>
+      <div class="field">
+        <label>Price Reductions (#)</label>
+        <input type="number" id="priceReductions" placeholder="0" />
+      </div>
+      <div class="field" style="grid-column:1/-1;">
+        <label>Seller Situation / Notes</label>
+        <input type="text" id="sellerNotes" placeholder="e.g. Inherited, behind on payments, divorce, tax delinquent, failed wholesale deal..." />
+      </div>
+    </div>
+    <button class="btn-underwrite" onclick="underwriteDeal()">Underwrite This Deal</button>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+
+    <div class="score-row">
+      <div class="score-card" id="flipScoreCard">
+        <div class="strategy">Flip Score</div>
+        <div class="score-num" id="flipScore">—</div>
+        <div class="verdict" id="flipVerdict"></div>
+      </div>
+      <div class="score-card" id="rentScoreCard">
+        <div class="strategy">Rental Score</div>
+        <div class="score-num" id="rentScore">—</div>
+        <div class="verdict" id="rentVerdict"></div>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-card">
+        <h3>Flip Analysis</h3>
+        <div class="metric"><span class="label">ARV</span><span class="val" id="r-arv"></span></div>
+        <div class="metric"><span class="label">70% Rule MAO</span><span class="val" id="r-mao"></span></div>
+        <div class="metric"><span class="label">Your Offer</span><span class="val" id="r-offer"></span></div>
+        <div class="metric"><span class="label">Rehab</span><span class="val" id="r-rehab"></span></div>
+        <div class="metric"><span class="label">Est. Net Profit</span><span class="val" id="r-profit"></span></div>
+        <div class="metric"><span class="label">Ask as % of ARV</span><span class="val" id="r-pct-arv"></span></div>
+        <div class="rec-box" id="r-flip-rec"></div>
+      </div>
+      <div class="detail-card">
+        <h3>Rental Analysis</h3>
+        <div class="metric"><span class="label">Monthly Rent</span><span class="val" id="r-rent"></span></div>
+        <div class="metric"><span class="label">Rent-to-Price Ratio</span><span class="val" id="r-rtp"></span></div>
+        <div class="metric"><span class="label">Target (Class <span id="r-class"></span>)</span><span class="val" id="r-target"></span></div>
+        <div class="metric"><span class="label">Est. Cap Rate</span><span class="val" id="r-cap"></span></div>
+        <div class="metric"><span class="label">Monthly Cash Flow</span><span class="val" id="r-cf"></span></div>
+        <div class="metric"><span class="label">Cash-on-Cash (est.)</span><span class="val" id="r-coc"></span></div>
+        <div class="rec-box" id="r-rent-rec"></div>
+      </div>
+    </div>
+
+    <div class="motivation-card">
+      <h3>Seller Motivation Score</h3>
+      <div class="metric"><span class="label">Motivation Level</span><span class="val" id="r-mot-label"></span></div>
+      <div class="mot-bar"><div class="mot-fill" id="r-mot-bar" style="width:0%"></div></div>
+      <div style="font-size:0.82rem;color:#a0aec0;margin-top:8px;" id="r-mot-notes"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+const PROXY = 'https://rentcast-proxy-n0m6adt6b-stans-projects-5d3df259.vercel.app';
+
+const rentTargets = { A: 0.01, B: 0.015, C: 0.02, D: 0.025 };
+
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+function pct(n) { return (n * 100).toFixed(1) + '%'; }
+
+async function lookupProperty() {
+  const address = document.getElementById('addressInput').value.trim();
+  if (!address) { alert('Please enter a property address.'); return; }
+
+  document.getElementById('statusBar').style.display = 'flex';
+  document.getElementById('lookupBtn').disabled = true;
+  setDot('d1','loading'); setDot('d2','loading'); setDot('d3','loading');
+
+  try {
+    const enc = encodeURIComponent(address);
+
+    // 1. Property details
+    let res = await fetch(`${PROXY}/api/rentcast?endpoint=properties&address=${enc}&limit=1`);
+    if (!res.ok) throw new Error('Property lookup failed');
+    const props = await res.json();
+    const prop = Array.isArray(props) ? props[0] : props;
+    if (prop && prop.bedrooms) {
+      document.getElementById('propDetails').value = `${prop.bedrooms||'?'} bed / ${prop.bathrooms||'?'} bath / ${(prop.squareFootage||0).toLocaleString()} sqft`;
+      document.getElementById('propTag').textContent = '✓ auto';
+    }
+    setDot('d1','ok');
+
+    // 2. Rent estimate
+    res = await fetch(`${PROXY}/api/rentcast?endpoint=avm/rent/long-term&address=${enc}`);
+    if (res.ok) {
+      const rentData = await res.json();
+      const rent = rentData.rent || rentData.rentRangeLow || null;
+      if (rent) {
+        document.getElementById('monthlyRent').value = Math.round(rent);
+        document.getElementById('rentTag').textContent = '✓ auto';
+      }
+    }
+    setDot('d2','ok');
+
+    // 3. Value estimate
+    res = await fetch(`${PROXY}/api/rentcast?endpoint=avm/value&address=${enc}`);
+    if (res.ok) {
+      const valData = await res.json();
+      const val = valData.price || valData.value || null;
+      if (val) {
+        document.getElementById('arv').value = Math.round(val);
+        document.getElementById('arvTag').textContent = '✓ auto';
+      }
+    }
+    setDot('d3','ok');
+
+  } catch(e) {
+    setDot('d1','err'); setDot('d2','err'); setDot('d3','err');
+    document.getElementById('s1').textContent = 'Error: ' + e.message + ' — enter manually';
+  } finally {
+    document.getElementById('lookupBtn').disabled = false;
+  }
+}
+
+function setDot(id, state) {
+  const el = document.getElementById(id);
+  el.className = 'dot ' + state;
+}
+
+function underwriteDeal() {
+  const asking = parseFloat(document.getElementById('askingPrice').value) || 0;
+  const rehab  = parseFloat(document.getElementById('rehabCost').value) || 0;
+  const arv    = parseFloat(document.getElementById('arv').value) || 0;
+  const rent   = parseFloat(document.getElementById('monthlyRent').value) || 0;
+  const cls    = document.getElementById('neighborhoodClass').value;
+  const dom    = parseInt(document.getElementById('dom').value) || 0;
+  const reductions = parseInt(document.getElementById('priceReductions').value) || 0;
+  const notes  = document.getElementById('sellerNotes').value.toLowerCase();
+
+  if (!asking || !arv || !rent) { alert('Please enter at least: Asking Price, ARV, and Monthly Rent.'); return; }
+
+  // --- FLIP ---
+  const mao = arv * 0.70 - rehab;
+  const closingCosts = asking * 0.02;
+  const carryingCosts = asking * 0.02;
+  const sellingCosts = arv * 0.06;
+  const netProfit = arv - asking - rehab - closingCosts - carryingCosts - sellingCosts;
+  const askPctArv = asking / arv;
+
+  let flipScore = 50;
+  if (asking <= mao) flipScore += 30; else flipScore -= Math.min(30, (asking - mao) / mao * 100);
+  if (netProfit >= arv * 0.15) flipScore += 20; else flipScore += Math.max(-20, netProfit / (arv * 0.15) * 20);
+  if (askPctArv < 0.65) flipScore += 10; else if (askPctArv > 0.80) flipScore -= 15;
+  flipScore = Math.max(0, Math.min(100, Math.round(flipScore)));
+
+  // --- RENTAL ---
+  const target = rentTargets[cls];
+  const rtpRatio = rent / asking;
+  const annualIncome = rent * 12;
+  const noi = annualIncome * 0.50; // 50% expense ratio
+  const capRate = noi / asking;
+  const annualDebt = asking * 0.07; // ~7% all-in financing
+  const monthlyCF = (noi - annualDebt) / 12;
+  const downPayment = asking * 0.20;
+  const closingBuy = asking * 0.02;
+  const coc = (noi - annualDebt) / (downPayment + closingBuy + rehab);
+
+  let rentScore = 50;
+  if (rtpRatio >= target) rentScore += 30; else rentScore += Math.max(-30, (rtpRatio / target - 1) * 100);
+  if (capRate >= 0.08) rentScore += 15; else rentScore += Math.max(-15, (capRate / 0.08 - 1) * 50);
+  if (monthlyCF >= 200) rentScore += 10; else if (monthlyCF < 0) rentScore -= 20;
+  if (coc >= 0.10) rentScore += 10; else if (coc < 0) rentScore -= 10;
+  rentScore = Math.max(0, Math.min(100, Math.round(rentScore)));
+
+  // --- MOTIVATION ---
+  let motScore = 0;
+  if (dom > 90) motScore += 3; else if (dom > 60) motScore += 2; else if (dom > 30) motScore += 1;
+  if (reductions >= 3) motScore += 3; else if (reductions >= 1) motScore += 1.5;
+  const highMot = ['foreclosure','behind','inherited','probate','divorce','tax delinquent','failed wholesale','fire','vacant','eviction'];
+  highMot.forEach(k => { if (notes.includes(k)) motScore += 1; });
+  motScore = Math.min(10, motScore);
+
+  // --- RECOMMENDATIONS ---
+  const maxFlipPrice = mao;
+  const maxRentPrice = rent / target;
+  const bestStrategy = flipScore >= rentScore ? 'flip' : 'hold';
+
+  // Render
+  renderScore('flipScore', 'flipVerdict', flipScore);
+  renderScore('rentScore', 'rentVerdict', rentScore);
+
+  set('r-arv', fmt(arv));
+  set('r-mao', fmt(mao), mao > asking ? 'green' : 'red');
+  set('r-offer', fmt(asking));
+  set('r-rehab', fmt(rehab));
+  set('r-profit', fmt(netProfit), netProfit >= arv * 0.15 ? 'green' : netProfit > 0 ? 'yellow' : 'red');
+  set('r-pct-arv', pct(askPctArv), askPctArv < 0.70 ? 'green' : askPctArv < 0.80 ? 'yellow' : 'red');
+
+  set('r-rent', fmt(rent));
+  set('r-rtp', pct(rtpRatio), rtpRatio >= target ? 'green' : rtpRatio >= target * 0.85 ? 'yellow' : 'red');
+  set('r-class', cls);
+  set('r-target', pct(target));
+  set('r-cap', pct(capRate), capRate >= 0.08 ? 'green' : capRate >= 0.06 ? 'yellow' : 'red');
+  set('r-cf', fmt(monthlyCF), monthlyCF >= 200 ? 'green' : monthlyCF >= 0 ? 'yellow' : 'red');
+  set('r-coc', pct(coc), coc >= 0.10 ? 'green' : coc >= 0.06 ? 'yellow' : 'red');
+
+  // Flip rec
+  let flipRec = '';
+  if (asking <= mao) {
+    flipRec = `Strong flip at ${fmt(asking)}. You\'re ${fmt(mao - asking)} under your MAO. Estimated net profit: ${fmt(netProfit)}.`;
+  } else {
+    flipRec = `To make this work as a flip, you need to buy at ${fmt(maxFlipPrice)} or less. Currently ${fmt(asking - maxFlipPrice)} over MAO.`;
+  }
+  document.getElementById('r-flip-rec').textContent = flipRec;
+
+  // Rent rec
+  let rentRec = '';
+  if (rtpRatio >= target) {
+    rentRec = `Hits your ${pct(target)} rent rule for Class ${cls}. Monthly cash flow estimate: ${fmt(monthlyCF)}.`;
+  } else {
+    rentRec = `To hit your ${pct(target)} target for Class ${cls}, max purchase price is ${fmt(maxRentPrice)}. Currently ${fmt(asking - maxRentPrice)} over target.`;
+  }
+  document.getElementById('r-rent-rec').textContent = rentRec;
+
+  // Motivation
+  const motPct = motScore / 10 * 100;
+  document.getElementById('r-mot-bar').style.width = motPct + '%';
+  const motLabel = motScore >= 8 ? 'Very High 🔥' : motScore >= 6 ? 'High' : motScore >= 4 ? 'Moderate' : 'Low';
+  set('r-mot-label', `${motLabel} (${motScore.toFixed(1)}/10)`);
+  document.getElementById('r-mot-notes').textContent = buildMotNotes(dom, reductions, notes);
+
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderScore(scoreId, verdictId, score) {
+  const el = document.getElementById(scoreId);
+  el.textContent = score;
+  const verdict = document.getElementById(verdictId);
+  if (score >= 80) { verdict.textContent = 'Strong Deal'; verdict.className = 'verdict verdict-strong'; el.style.color = '#48bb78'; }
+  else if (score >= 60) { verdict.textContent = 'Decent Deal'; verdict.className = 'verdict verdict-decent'; el.style.color = '#9ae600'; }
+  else if (score >= 40) { verdict.textContent = 'Marginal'; verdict.className = 'verdict verdict-marginal'; el.style.color = '#f6ad55'; }
+  else { verdict.textContent = 'Pass'; verdict.className = 'verdict verdict-pass'; el.style.color = '#e94560'; }
+}
+
+function set(id, val, colorClass) {
+  const el = document.getElementById(id);
+  el.textContent = val;
+  if (colorClass) { el.className = 'val ' + colorClass; } else { el.className = 'val'; }
+}
+
+function buildMotNotes(dom, reductions, notes) {
+  const parts = [];
+  if (dom > 60) parts.push(`${dom} days on market — seller is getting anxious`);
+  if (reductions > 0) parts.push(`${reductions} price reduction(s) — already motivated to move`);
+  const flags = ['foreclosure','inherited','probate','divorce','tax delinquent','failed wholesale','fire','vacant'];
+  flags.forEach(f => { if (notes.includes(f)) parts.push(f.charAt(0).toUpperCase() + f.slice(1) + ' situation detected'); });
+  return parts.length ? parts.join(' · ') : 'No strong motivation signals detected — negotiate aggressively on price.';
+}
+
+// Allow Enter key on address field
+document.getElementById('addressInput').addEventListener('keypress', e => {
+  if (e.key === 'Enter') lookupProperty();
+});
+</script>
+</body>
+</html>
