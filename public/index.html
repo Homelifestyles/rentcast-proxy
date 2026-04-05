@@ -213,7 +213,7 @@ async function lookupProperty() {
     const enc = encodeURIComponent(address);
 
     // 1. Property details
-    let res = await fetch(`${PROXY}/api/rentcast?endpoint=properties&address=${enc}&limit=1`);
+    let res = await fetch(`${PROXY}/api/proxy?endpoint=properties&address=${enc}&limit=1`);
     if (!res.ok) throw new Error('Property lookup failed');
     const props = await res.json();
     const prop = Array.isArray(props) ? props[0] : props;
@@ -224,7 +224,7 @@ async function lookupProperty() {
     setDot('d1','ok');
 
     // 2. Rent estimate
-    res = await fetch(`${PROXY}/api/rentcast?endpoint=avm/rent/long-term&address=${enc}`);
+    res = await fetch(`${PROXY}/api/proxy?endpoint=avm/rent/long-term&address=${enc}`);
     if (res.ok) {
       const rentData = await res.json();
       const rent = rentData.rent || rentData.rentRangeLow || null;
@@ -236,7 +236,7 @@ async function lookupProperty() {
     setDot('d2','ok');
 
     // 3. Value estimate
-    res = await fetch(`${PROXY}/api/rentcast?endpoint=avm/value&address=${enc}`);
+    res = await fetch(`${PROXY}/api/proxy?endpoint=avm/value&address=${enc}`);
     if (res.ok) {
       const valData = await res.json();
       const val = valData.price || valData.value || null;
