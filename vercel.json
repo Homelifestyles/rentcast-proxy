@@ -1,8 +1,10 @@
 {
-  "functions": {
-    "api/rentcast.js": {
-      "memory": 128,
-      "maxDuration": 10
-    }
-  }
+  "builds": [
+    { "src": "api/rentcast.js", "use": "@vercel/node" },
+    { "src": "public/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/public/$1" }
+  ]
 }
