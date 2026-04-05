@@ -143,7 +143,7 @@ All 6 types have 7-touch drip sequences written in NEPQ style:
 ---
 
 ## Rentcast Proxy (Vercel)
-- **Vercel URL**: `rentcast-proxy-n0m6adt6b-stans-projects-5d3df259.vercel.app`
+- **Vercel URL**: `rentcast-proxy.vercel.app`
 - **GitHub**: https://github.com/Homelifestyles/rentcast-proxy
 - **Dev branch**: `claude/xleads-ghl-integration-oKgt5`
 - **API key**: Stored as Vercel env var `RENTCAST_API_KEY`
