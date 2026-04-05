@@ -1,7 +1,4 @@
 {
-  "buildCommand": "",
-  "outputDirectory": "public",
-  "framework": null,
   "functions": {
     "api/rentcast.js": {
       "memory": 128,
